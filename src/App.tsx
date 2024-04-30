@@ -13,7 +13,7 @@ import { Message, User } from "./types";
 // 💡 TIPS:
 // - Feel free to refactor the code as you see fit or to a style you are more comfortable with.
 // - Feel free to use any library you want.
-// - Feel free to write CSS styles as you prefer.
+// - Feel free to write CSS styles as you prefer e.g. plain CSS, Tailwind.
 // - You can use the `client` object to interact with the API and trust it works as expected.
 // - You can assume the API is working correctly.
 // - You can assume the user is authenticated, authorized, online etc.
@@ -83,7 +83,7 @@ function App() {
               key={message.id}
               className="text-gray-50 border-b border-gray-200 py-2"
             >
-              <div className="space-x-1">{message.text}</div>
+              <div>{message.text}</div>
             </li>
           );
         })}
