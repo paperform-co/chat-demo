@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, UIEvent } from "react";
 import { client } from "./client";
 import { Message, User } from "./types";
 
@@ -19,48 +19,100 @@ import { Message, User } from "./types";
 // - You can assume the user is authenticated, authorized, online etc.
 
 function App() {
-  const [messages, setMessages] = useState<Array<Message> | null>(null);
-  const [, setNextMessageId] = useState<number | null>(null);
+  // change type for messages to an array and default to []
+  const [messages, setMessages] = useState<Array<Message>>([]);
+  const [nextMessageId, setNextMessageId] = useState<number | null>(null);
   const [users, setUsers] = useState<Array<User> | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // extract data retrieval to separate function for use within handleScroll and initial load
+  const fetchData = () => {
+    // 1 - sort order, 'desc' to 'asc'
+    // 4 - add afterId
+    client.messages({ sort: "asc", afterId: nextMessageId}).then(({ messages: retrievedMessages, nextId }) => {
+      // we can always concat as the default is set to a blank array
+      setMessages(messages.concat(retrievedMessages))
+      setNextMessageId(nextId);
+    });
+  }
+
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    if (!isLoading && event.currentTarget.scrollTop === 0) {
+      fetchData();
+    }
+  };
 
   useEffect(() => {
     client.currentUser().then(setCurrentUser);
     client.users().then(setUsers);
-    client.messages({ sort: "desc" }).then(({ messages, nextId }) => {
-      setMessages(messages);
-      setNextMessageId(nextId);
-    });
+    
+    // reset back to default
+    setMessages([])
+    setNextMessageId(null)
+    
+    fetchData()
+  
+    // TODO - understand useEffect dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isLoading = !messages || !users || !currentUser;
 
-  if (isLoading) {
-    return (
-      <main className="h-svh w-svh flex flex-col items-center justify-center bg-gray-800 py-6">
-        <div className="text-gray-50 text-4xl font-bold">Loading...</div>
-      </main>
-    );
+  // TODO - understand what the event should be here
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    const input = (event.currentTarget as HTMLFormElement).text;
+    const text = input.value;
+    input.value = "";
+
+    client.createMessage({ text }).then((message) => {
+      setMessages((prev) => {
+        if (!prev) return null;
+        // swap order to put message at bottom
+        return [...prev, message];
+      });
+    })
   }
 
-  return (
-    <main className="min-h-svh w-svh bg-gray-800 p-8">
+  const MessageCard = ({message} : {message: Message}) => {
+    const authorClassName = message.authorId === currentUser?.id ? 'float-end text-right bg-cyan-700' : 'bg-yellow-800'
+    
+    const createdAt = new Date(message.createdAt)
+    const hours = `0${createdAt.getHours()}`
+    const minutes = `0${createdAt.getMinutes()}`
+
+    return (
+      <div className={`w-5/6 border-solid rounded-lg p-3 ${authorClassName}`}>
+        <pre className="text-sm italic">{hours.substring(hours.length-2)}:{minutes.substring(minutes.length-2)}</pre>
+        {message.text}
+      </div>
+    )
+  }
+
+  const MessageList = () => 
+    (
+      <>
+        <ul className="h-[500px] overflow-y-scroll p-2" onScroll={handleScroll}>
+          {messages.map((message) => {
+            return (
+              <li
+                key={message.id}
+                className="text-gray-50 py-2 clear-both"
+              >
+                <MessageCard message={message} />
+              </li>
+            );
+          })}
+        </ul>
+      </>
+    )
+
+  const ChatForm = () => 
+    (
       <form
-        className="my-8"
-        onSubmit={(event) => {
-          event.preventDefault();
-
-          const input = (event.currentTarget as HTMLFormElement).text;
-          const text = input.value;
-          input.value = "";
-
-          client.createMessage({ text }).then((message) => {
-            setMessages((prev) => {
-              if (!prev) return null;
-              return [message, ...prev];
-            });
-          });
-        }}
+        className="my-8 float-end"
+        onSubmit={handleSubmit}
       >
         <input
           type="text"
@@ -75,19 +127,24 @@ function App() {
           Send
         </button>
       </form>
+    )
 
-      <ul>
-        {messages.map((message) => {
-          return (
-            <li
-              key={message.id}
-              className="text-gray-50 border-b border-gray-200 py-2"
-            >
-              <div>{message.text}</div>
-            </li>
-          );
-        })}
-      </ul>
+  if (isLoading) {
+    return (
+      <main className="h-svh w-svh flex flex-col items-center justify-center bg-gray-800 py-6">
+        <div className="text-gray-50 text-4xl font-bold">Loading...</div>
+      </main>
+    );
+  }
+
+  // 2 - move UL from bottom to top
+  return (
+    <main className="min-h-svh w-svh bg-gray-800 p-8 w-[400px]">
+      <div>
+        <MessageList />
+
+        <ChatForm />
+      </div>
     </main>
   );
 }

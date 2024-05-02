@@ -10,7 +10,7 @@ class Client {
   };
 
   messages = (options?: {
-    afterId?: number;
+    afterId?: number | null;
     sort?: "asc" | "desc";
   }): Promise<PaginatedMessages> => {
     if (options) {
