@@ -2,13 +2,8 @@ import { useEffect, useState } from "react";
 import { client } from "./client";
 import { Message, User } from "./types";
 
-// TASK 🚀
-// Improve this POC chat application UI by implementing the following features:
-// 1. Messages should be displayed with the newest at the bottom.
-// 2. The message field should be at the bottom of the screen and the messages should be above it.
-// 3. The message field should be sticky to the bottom of the screen.
-// 4. Scrolling to the top of the chat should load more messages.
-// 5. Improve the UI/UX as you see fit.
+// This is a simple chat application. The user can send messages and view messages from other users.
+// This file contains the main component of the application.
 
 // 💡 TIPS:
 // - Feel free to refactor the code as you see fit or to a style you are more comfortable with.
@@ -19,12 +14,20 @@ import { Message, User } from "./types";
 // - You can assume the user is authenticated, authorized, online etc.
 
 function App() {
+  // The messages which have been loaded.
   const [messages, setMessages] = useState<Array<Message> | null>(null);
+
+  // The ID of the next message to load when scrolling up.
   const [, setNextMessageId] = useState<number | null>(null);
+
+  // All the users who are involved in the chat.
   const [users, setUsers] = useState<Array<User> | null>(null);
+
+  // The current user who is using the chat.
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
+    // Load the current user, all users and the initial messages.
     client.currentUser().then(setCurrentUser);
     client.users().then(setUsers);
     client.messages({ sort: "desc" }).then(({ messages, nextId }) => {

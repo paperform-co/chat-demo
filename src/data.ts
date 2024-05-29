@@ -1,5 +1,10 @@
 import { Data } from "./types";
 
+// This is the data that should be used to populate the chat application.
+// The data includes users and messages.
+// The messages are ordered by their creation date and ID in ascending order.
+// Don't load the data directly in the App component, use the client object to fetch the data.
+
 export const data: Data = {
   currentUserId: 1,
   users: [
